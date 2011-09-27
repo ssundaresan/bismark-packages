@@ -33,7 +33,7 @@ define Build/Prepare
 	#[ -d files ] && ( cd files ; git pull ) \#; git checkout $(GIT_COMMIT)) \
 #		     || ( git clone git://github.com/bismark-devel/bismark.git files ; cd files ) \#; git checkout $(GIT_COMMIT))
 	[ -d files ] && ( cd files ; git pull ) \
-		     || ( git clone git://github.com/bismark-devel/bismark.git files ; cd files ) 
+		     || ( git clone git://github.com/ssundaresan/bismark.git files ; cd files ) 
 
 	# mgmt clash $(CP) files/device/OpenWrt_common/scripts/bismark-{action-lite,bootstrap-lite,probe} $(PKG_BUILD_DIR)/scripts
 	# mgmt clash $(CP) files/device/OpenWrt_common/etc/{bismark.conf,bismark-lite.{conf,initd},crontab-lite} $(PKG_BUILD_DIR)/etc
