@@ -43,8 +43,7 @@ define Build/Prepare
 
 	#VERSION=$(cd files ; git log --pretty=format:'' | wc -l)
 	#sed -i -e "/^VERSION=/ s/=.*/=${VERSION}/" $(PKG_BUILD_DIR)/etc/bismark.conf
-    sed -i -e "/^VERSION=/ s/=.*/=`cd files ; git log --pretty=format:'' | wc -l`/" $(PKG_BUILD_DIR)/etc/bismark.conf
-
+	sed -i -e "/^VERSION=/ s/=.*/=`cd files ; git log --pretty=format:'' | wc -l`/" $(PKG_BUILD_DIR)/etc/bismark.conf
 endef
 
 define Build/Compile
