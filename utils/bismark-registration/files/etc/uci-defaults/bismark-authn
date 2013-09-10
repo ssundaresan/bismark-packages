@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# Enable init script
+/etc/init.d/bismark-authn-check enable
+
+# Enable cron job
+(crontab -l | grep -v bismark-authn-check; echo '0 0 * * * /usr/bin/bismark-authn-check -d') | crontab -
+
+# Sort files, start nodogsplash
+mv /etc/nodogsplash/nodogsplash.conf.will-rename-in-uci-defaults /etc/nodogsplash/nodogsplash.conf
+mv /etc/nodogsplash/htdocs/splash.html.will-rename-in-uci-defaults /etc/nodogsplash/htdocs/splash.html
+/etc/init.d/nodogsplash restart

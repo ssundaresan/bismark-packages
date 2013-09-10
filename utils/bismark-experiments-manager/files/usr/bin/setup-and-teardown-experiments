@@ -1,0 +1,155 @@
+#!/usr/bin/env lua
+
+require("io")
+require('os')
+require("uci")
+require('bmlua.graphs')
+require('bmlua.set')
+local set = bmlua.set
+require('bmlua.opkg')
+local opkg = bmlua.opkg
+require('bmlua.uci')
+require('nixio.fs')
+
+local UCI_TRUE = bmlua.uci.UCI_TRUE
+local UCI_FALSE = bmlua.uci.UCI_FALSE
+
+local EXPERIMENTS_CONFIG = "bismark-experiments"
+local EXPERIMENTS_CACHE = "/var/bismark-experiments"
+
+local get_managed_repositories = function()
+    local repositories = set.Set()
+    for repository in nixio.fs.dir(EXPERIMENTS_CACHE) do
+        repositories:add(repository)
+    end
+    return repositories:intersection(opkg.get_package_lists())
+end
+
+local parse_bool = function(value)
+    if value == nil then
+        return false
+    else
+        return bmlua.uci.parse_bool(value)
+    end
+end
+
+local load_experiments = function(cursor, candidate_packages)
+    local installed_packages = set.Set()
+    local config = cursor:get_all(EXPERIMENTS_CONFIG)
+    if config ~= nil then
+        for _, section in pairs(config) do
+            if section[".type"] == "experiment"
+                    and (parse_bool(section.installed)
+                            or parse_bool(section.required))
+                    and section.package ~= nil then
+                installed_packages:update(set.from_array(section.package))
+            end
+        end
+    end
+    return installed_packages:intersection(candidate_packages)
+end
+
+-- Check for conflicting experiments and remove one of
+-- them if both are marked for installation.
+local remove_conflicting_experiments = function(cursor)
+    local experiments_config = cursor:get_all(EXPERIMENTS_CONFIG)
+    if experiments_config ~= nil then
+        for name, experiment in pairs(experiments_config) do
+            if experiment.conflicts ~= nil then
+                for _, conflict in pairs(experiment.conflicts) do
+                    local installed = parse_bool(
+                            cursor:get(EXPERIMENTS_CONFIG, name, 'installed'))
+                    local required = parse_bool(
+                            cursor:get(EXPERIMENTS_CONFIG, name, 'required'))
+                    local conflict_installed = parse_bool(
+                            cursor:get(EXPERIMENTS_CONFIG, conflict, 'installed'))
+                    local conflict_required = parse_bool(
+                            cursor:get(EXPERIMENTS_CONFIG, conflict, 'required'))
+                    if (installed or required)
+                            and (conflict_installed or conflict_required) then
+                        print("Experiments " .. name .. " and " .. conflict .. " conflict")
+                        if not conflict_required then
+                            print("Marking " .. conflict .. " for removal")
+                            cursor:set(EXPERIMENTS_CONFIG, conflict, 'installed', UCI_FALSE)
+                        elseif not required then
+                            print("Marking " .. name .. " for removal")
+                            cursor:set(EXPERIMENTS_CONFIG, name, 'installed', UCI_FALSE)
+                        else
+                            print("Both " .. name .. " and " .. conflict .. " are required!")
+                            print("We will attempt to install both experiments, but this will probably end badly.")
+                        end
+                        cursor:save(EXPERIMENTS_CONFIG)
+                    end
+                end
+            end
+        end
+        cursor:commit(EXPERIMENTS_CONFIG)
+    end
+end
+
+function sort_packages(packages)
+    local dependency_graph = {}
+    for package_name in packages:iter() do
+        local info = opkg.info(package_name)
+        dependency_graph[package_name] = info.depends
+        if dependency_graph[package_name] == nil then
+            dependency_graph[package_name] = {}
+        end
+        if info.provides ~= nil then
+            for _, synonym in ipairs(info.provides) do
+                if dependency_graph[synonym] == nil then
+                    dependency_graph[synonym] = {package_name}
+                end
+            end
+        end
+    end
+    local sorted = bmlua.graphs.topological_sort(dependency_graph)
+    if sorted == nil then
+        print("Package dependency graph is inconsistent!")
+        os.exit(1)
+    end
+    local sorted_packages = {}
+    for _, package in ipairs(sorted) do
+        if packages:contains(package) then
+            table.insert(sorted_packages, package)
+        end
+    end
+    return sorted_packages
+end
+
+function main(arg)
+    local all_repositories = opkg.get_package_lists()
+    local managed_repositories = get_managed_repositories()
+    local unmanaged_repositories =
+            all_repositories:difference(managed_repositories)
+
+    local unmanaged_packages =
+            opkg.get_packages_in_repositories(unmanaged_repositories)
+    local managed_packages =
+            opkg.get_packages_in_repositories(managed_repositories)
+    if managed_packages:intersection(unmanaged_packages):length() > 0 then
+        print("Managed and unmanaged repositories must be disjoint!")
+        return 1
+    end
+
+    local cursor = uci.cursor()
+    remove_conflicting_experiments(cursor)
+
+    local should_install = load_experiments(cursor, managed_packages)
+    local currently_installed =
+            opkg.list_installed():intersection(managed_packages)
+    local to_remove =
+            sort_packages(currently_installed:difference(should_install))
+    for idx = #to_remove,1,-1 do
+        print("removing " .. to_remove[idx])
+        opkg.remove(to_remove[idx])
+    end
+    local to_install =
+            sort_packages(should_install:difference(currently_installed))
+    for _, package_name in ipairs(to_install) do
+        print("installing " .. package_name)
+        opkg.install(package_name)
+    end
+end
+
+return main(arg)

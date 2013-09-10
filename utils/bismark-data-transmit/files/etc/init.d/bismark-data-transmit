@@ -1,0 +1,42 @@
+#!/bin/sh /etc/rc.common
+
+START=97
+PIDFILE=/var/run/bismark-data-transmit.pid
+DIRECTORIES="
+active
+bismark-experiments-manager
+bismark-updater
+censorship-performance
+health
+mac-analyzer
+nazanin-traceroute
+passive
+passive-frequent
+wifi-beacons
+"
+start() {
+    for directory in $DIRECTORIES; do
+        mkdir -p /tmp/bismark-uploads/$directory
+    done
+
+    if [ -f $PIDFILE ]; then
+        echo "pidfile $PIDFILE already exists; bismark-data-transmit already running?"
+        exit 1
+    fi
+    start-stop-daemon -S \
+        -x /usr/bin/bismark-data-transmit \
+        -p $PIDFILE \
+        -m -b -- $DATA_TRANSMIT_ARGUMENTS
+}
+
+stop() {
+    [ -f $PIDFILE ] && {
+        start-stop-daemon -K -q -p $PIDFILE -s TERM
+        rm -f $PIDFILE
+    }
+}
+
+restart() {
+    stop
+    start
+}
