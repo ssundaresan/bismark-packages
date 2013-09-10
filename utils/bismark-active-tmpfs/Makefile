@@ -32,6 +32,10 @@ define Package/bismark-active-tmpfs/description
 	The bismark-active-tmpfs package runs active network measurements 
 endef
 
+define Build/Compile
+
+endef
+
 # Specify where and how to install the program. Since we only have one file,
 # the helloworld executable, install it by copying it to the /bin directory on
 # the router. The $(1) variable represents the root directory on the router running
