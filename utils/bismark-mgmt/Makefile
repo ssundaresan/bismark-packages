@@ -34,11 +34,7 @@ define Build/Prepare
 #	[ -d files ] && ( cd files ; git pull ) \#; git checkout $(GIT_COMMIT)) \
 #		     || ( git clone git://github.com/projectbismark/bismark.git files ; cd files ) #; git checkout $(GIT_COMMIT))
 	[ -d files ] && ( cd files ; git pull ) \
-<<<<<<< HEAD
-		     || ( git clone git://github.com/ssundaresan/bismark.git files ; cd files ) 
-=======
 		     || ( git clone git://github.com/projectbismark/bismark.git files ; cd files ) 
->>>>>>> 92f1feca09cdbb00bd5802ce1c20edd60444514f
 
 	$(CP) files/device/OpenWrt_common/scripts/bismark-{action,bootstrap,probe,rshell,scp,sshd} $(PKG_BUILD_DIR)/scripts
 	$(CP) files/device/OpenWrt_common/etc/{bismark.{conf,initd},crontab} $(PKG_BUILD_DIR)/etc
@@ -48,10 +44,6 @@ define Build/Prepare
 	$(CP) -L files/device/OpenWrt_common/keys/projectbismark_*.crt $(PKG_BUILD_DIR)/keys
 
 	#VERSION=$(cd files ; git log --pretty=format:'' | wc -l)
-<<<<<<< HEAD
-	#sed -i -e "/^VERSION=/ s/=.*/=${VERSION}/" $(PKG_BUILD_DIR)/etc/bismark.conf
-=======
->>>>>>> 92f1feca09cdbb00bd5802ce1c20edd60444514f
 	sed -i -e "/^VERSION=/ s/=.*/=`cd files ; git log --pretty=format:'' | wc -l`/" $(PKG_BUILD_DIR)/etc/bismark.conf
 endef
 
@@ -85,13 +77,6 @@ if [ -z "$${IPKG_INSTROOT}" ]; then
 fi
 endef
 
-<<<<<<< HEAD
-cat $${IPKG_INSTROOT}/etc/bismark/authorized_keys >> $${IPKG_INSTROOT}/etc/dropbear/authorized_keys
-cat $${IPKG_INSTROOT}/etc/bismark/known_hosts >> $${IPKG_INSTROOT}/root/.ssh/known_hosts
-if [ -z "$${IPKG_INSTROOT}" ]; then
-	$${IPKG_INSTROOT}/usr/bin/bismark-bootstrap
-fi
-=======
 define Package/bismark-mgmt/prerm
 $(call Package/bismark-mgmt/preinst)
 rm $${IPKG_INSTROOT}/etc/ssl/certs/219d9499.0
@@ -106,7 +91,6 @@ grep -sFvf $${IPKG_INSTROOT}/etc/bismark/known_hosts $${IPKG_INSTROOT}/root/.ssh
 cp $${IPKG_INSTROOT}/tmp/knownhosts.nonbismark $${IPKG_INSTROOT}/root/.ssh/known_hosts
 rm $${IPKG_INSTROOT}/tmp/knownhosts.nonbismark
 endef
->>>>>>> 92f1feca09cdbb00bd5802ce1c20edd60444514f
 
 define Package/bismark-mgmt/postinst
 #!/bin/sh
