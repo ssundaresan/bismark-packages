@@ -8,13 +8,8 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=bismark-mgmt
-<<<<<<< HEAD
-PKG_VERSION:=0.4
-PKG_RELEASE:=3
-=======
 PKG_VERSION:=0.7
 PKG_RELEASE:=24
->>>>>>> 92f1feca09cdbb00bd5802ce1c20edd60444514f
 #GIT_COMMIT:=1123704e593bddc4a9b4
 #GIT_COMMIT:=lite
 
