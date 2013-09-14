@@ -35,13 +35,6 @@ endef
 define Build/Compile
 endef
 
-# Specify where and how to install the program. Since we only have one file,
-# the helloworld executable, install it by copying it to the /bin directory on
-# the router. The $(1) variable represents the root directory on the router running
-# OpenWrt. The $(INSTALL_DIR) variable contains a command to prepare the install
-# directory if it does not already exist.  Likewise $(INSTALL_BIN) contains the
-# command to copy the binary file from its current location (in our case the build
-# directory) to the install directory.
 define Package/bismark-active-tmpfs/install
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_DIR) $(1)/usr/lib/bismark
@@ -55,9 +48,8 @@ define Package/bismark-active-tmpfs/preinst
 #!/bin/sh
 # Bismark active-tmpfs pre-install script: clear crontab
 if [ -z "$${IPKG_INSTROOT}" ]; then
-	if [ -e /tmp/etc/bismark/crontab-active-tmpfs ]; then
-		grep -sFvf /tmp/etc/bismark/crontab-active-tmpfs /etc/crontabs/root | sort -u | crontab -
-	fi
+	crontab -l | grep -sv bismark-measure-wrapper | sort -u | crontab -
+	/etc/init.d/cron restart
 fi
 endef
 
@@ -70,7 +62,14 @@ define Package/bismark-active-tmpfs/postinst
 # Bismark active-tmpfs post-install script
 
 if [ -z "$${IPKG_INSTROOT}" ]; then
-    $${IPKG_INSTROOT}/usr/bin/bismark-bootstrap
+	(crontab -l; echo "*/1  * * * * /tmp/usr/bin/bismark-measure-wrapper  # remove on reboot") | sort -u > /tmp/bismark-crontab
+	if ! cmp -s /etc/crontabs/root /tmp/bismark-crontab; then
+		crontab /tmp/bismark-crontab
+	fi
+	rm /tmp/bismark-crontab
+	/etc/init.d/cron restart
+	bismark-action scriptupdate
+	#$${IPKG_INSTROOT}/usr/bin/bismark-bootstrap
 fi
 endef
 
