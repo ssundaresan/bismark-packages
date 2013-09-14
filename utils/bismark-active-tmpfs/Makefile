@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=bismark-active-tmpfs
 PKG_VERSION:=HEAD
-PKG_RELEASE:=23
+PKG_RELEASE:=25
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=git://github.com/projectbismark/bismark-active.git
@@ -33,7 +33,6 @@ define Package/bismark-active-tmpfs/description
 endef
 
 define Build/Compile
-
 endef
 
 # Specify where and how to install the program. Since we only have one file,
